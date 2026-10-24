@@ -16,7 +16,7 @@ def main():
     parser.add_argument('--prefix')
     parser.add_argument('--auto-start', action='store_true')
     parser.add_argument('--migrate', action='store_true', help='replace recognized legacy tivi hooks')
-    parser.add_argument('--termux-keys', action='store_true', help='install EN/VI extra keys')
+    parser.add_argument('--termux-keys', action='store_true', help='add EN/VI toggle before ESC')
     options = parser.parse_args()
     try:
         install(ROOT, **vars(options))

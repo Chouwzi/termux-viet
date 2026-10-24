@@ -8,6 +8,7 @@ import signal
 import struct
 import subprocess
 import sys
+import tempfile
 import termios
 import time
 import unittest
@@ -51,10 +52,13 @@ class TerminalTests(unittest.TestCase):
 
 
 class Relay:
-    def __init__(self, program):
+    def __init__(self, program, environment=None):
         self.master, self.slave = pty.openpty()
         self.before = termios.tcgetattr(self.slave)
-        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / 'src'))
+        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / 'src'),
+                   TERMUX_VIET_MODE_KEY='0')
+        if environment:
+            env.update(environment)
         code = 'import sys; from termux_viet.terminal import run; sys.exit(run(sys.argv[1:]))'
         self.process = subprocess.Popen(
             [sys.executable, '-c', code, *program],
@@ -88,6 +92,41 @@ class Relay:
 
 
 class RelayTests(unittest.TestCase):
+    def test_mode_button_updates_without_changing_child_input(self):
+        from termux_viet.extra_keys import install_keys, parse_layout
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            properties = root / '.termux/termux.properties'
+            properties.parent.mkdir()
+            properties.write_text(install_keys(''))
+            bindir = root / 'bin'
+            bindir.mkdir()
+            reload_script = bindir / 'termux-reload-settings'
+            reload_script.write_text(f'#!{sys.executable}\n')
+            reload_script.chmod(0o755)
+            relay = Relay([sys.executable, '-c',
+                           "import os; print('READY',flush=True); "
+                           "print('RESULT='+os.read(0,1024).hex(),flush=True); os.read(0,1024)"],
+                          {'HOME': str(root), 'XDG_STATE_HOME': str(root / 'state'),
+                           'PATH': str(bindir) + os.pathsep + os.environ['PATH'],
+                           'TERMUX_VIET_MODE_KEY': '1'})
+            try:
+                relay.until(b'READY')
+                write_all(relay.master, b'\x00ass\r')
+                relay.until(b'RESULT=6173730a')
+                deadline = time.monotonic() + 3
+                while time.monotonic() < deadline:
+                    if parse_layout(properties.read_text())[0][0]['display'] == 'VI':
+                        break
+                    time.sleep(.01)
+                self.assertEqual(parse_layout(properties.read_text())[0][0]['display'], 'VI')
+                self.assertEqual(parse_layout(properties.read_text())[1][3:6],
+                                 ['LEFT', 'DOWN', 'RIGHT'])
+                write_all(relay.master, b'\r')
+                self.assertEqual(relay.process.wait(timeout=5), 0)
+            finally:
+                relay.close()
+
     def relay(self, code):
         relay = Relay([sys.executable, '-c', code])
         self.addCleanup(relay.close)
