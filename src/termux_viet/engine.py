@@ -1,9 +1,9 @@
 """Per-instance UniKey composition with Unicode edits."""
 
 import ctypes
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
 
 
 @dataclass(frozen=True, slots=True)
