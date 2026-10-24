@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — 2026-10-24
+
+- Fix converter option parsing on Python 3.10 and allow options between text arguments.
+- Add a CLI regression for mixed positional/options; retain the original 0.1.0 tag.
+
 ## 0.1.0 — 2026-10-24
 
 - Native UniKey Telex with traditional/modern tone placement and optional spell checking.

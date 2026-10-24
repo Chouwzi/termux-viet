@@ -55,6 +55,6 @@ Spec: ../specs/2026-10-24-termux-viet-design.md
 - [x] Benchmark engine/parser and document measured scope without commercial-equivalence claims.
 - [x] Fresh-context review, fix material issues with regressions, rerun all checks.
 - [x] Audit tracked files and history for secrets, license and machine paths.
-- [ ] Merge feature to develop, release/0.1.0 to main, tag v0.1.0, merge back.
-- [ ] Create public GitHub repository and push reviewed refs; verify visibility, tree and remote heads.
+- [x] Merge feature to develop, release/0.1.0 to main, tag v0.1.0, merge back.
+- [x] Create public GitHub repository and push reviewed refs; verify visibility, tree and remote heads.
 - [x] Install on current Termux with backed-up legacy hooks and verify local executable.
