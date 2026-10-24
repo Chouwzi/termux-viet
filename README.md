@@ -4,7 +4,7 @@ Bộ gõ tiếng Việt gọn nhẹ cho terminal Termux, dùng **lõi UniKey**.
 Gõ Telex trực tiếp vào terminal, đổi Việt/Anh ngay trên bàn phím.
 Không cần root, desktop framework hay thư viện Python ngoài.
 
-**Bản 0.2.0:** Telex. VNI và các kiểu gõ khác dành cho phiên bản sau.
+**Bản 0.2.1:** Telex. VNI và các kiểu gõ khác dành cho phiên bản sau.
 Đây là bộ chuyển phím trong terminal; không có dự đoán từ hoặc autocorrect
 như Gboard/Samsung Keyboard.
 
@@ -62,7 +62,7 @@ printf '%s\n' 'nuwar nuwax' | termux-viet convert
 | Phím | Chức năng |
 | --- | --- |
 | Ctrl+Space, Alt+Space, Alt+`\` | Đổi VI/EN |
-| Nút EN / VI trước ESC | Chuyển sang chế độ được ghi trên nút |
+| Nút EN / VI trước ESC | Hiển thị chế độ hiện tại; bấm để đổi VI ↔ EN |
 | `s f r x j` | Sắc, huyền, hỏi, ngã, nặng |
 | `aa ee oo`, `aw ow uw`, `dd` | â ê ô, ă ơ ư, đ |
 | `w` | Gõ nhanh ư theo UniKey |
@@ -79,8 +79,8 @@ Sau khi cài với `--termux-keys`, nút đổi ngôn ngữ nằm ngay trước 
 Tất cả phím mặc định, gồm ←/→, được giữ lại. Khi nâng từ bố cục cũ của
 termux-viet, vị trí EN/VI thay nhầm ←/→ được sửa lại.
 
-Nhãn là **chế độ sẽ chuyển sang**: đang VI thì nút ghi **EN**; đang EN thì nút
-ghi **VI**. Bấm nút gửi Ctrl+Space để đổi đúng chế độ của session đang nhập.
+Nhãn là **chế độ hiện tại**: đang gõ tiếng Việt thì nút ghi **VI**; đang gõ
+English thì nút ghi **EN**. Bấm nút gửi Ctrl+Space để đổi đúng chế độ của session đang nhập.
 Đổi bằng phím tắt cũng cập nhật nhãn ở nền, không chèn thông báo vào dòng gõ.
 
 Cập nhật bản đang cài và bố cục:

@@ -1,4 +1,4 @@
-"""Preserve Termux layouts and manage the inverse-action language key."""
+"""Preserve Termux layouts and manage the current-mode language key."""
 
 import ast
 import fcntl
@@ -113,7 +113,7 @@ def install_keys(text, mode='VI'):
                     button = 'RIGHT'
             repaired.append(button)
         layout[index] = repaired
-    toggle = {'macro': 'CTRL SPACE', 'display': 'EN' if mode == 'VI' else 'VI', MARKER: 'toggle'}
+    toggle = {'macro': 'CTRL SPACE', 'display': mode, MARKER: 'toggle'}
     for row in layout:
         for index, button in enumerate(row):
             if button == 'ESC' or isinstance(button, dict) and button.get('key') == 'ESC':
@@ -148,7 +148,7 @@ def apply_mode(path, mode):
         if len(original) > 65536:
             return False
         layout = parse_layout(original)
-        target = 'EN' if mode == 'VI' else 'VI'
+        target = mode
         changed = False
         for row in layout:
             for button in row:

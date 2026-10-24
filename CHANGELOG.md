@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 — 2026-10-24
+
+- Show the current mode on the language button: VI for Vietnamese, EN for English.
+- Keep Ctrl+Space toggle behavior and the preserved arrow keys.
+
 ## 0.2.0 — 2026-10-24
 
 - Restore LEFT/RIGHT replaced by the legacy language buttons.
