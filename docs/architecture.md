@@ -43,6 +43,16 @@ backed up before writes and existing permissions/symlink targets are preserved.
 Only marked hooks and recognized legacy blocks are changed. Backups stay local;
 they can contain personal shell settings and must never be committed.
 
+`extra_keys.py` safely decodes literal Termux layouts without evaluating code.
+The marked Ctrl+Space toggle precedes ESC; legacy arrow replacements are repaired.
+Unrelated buttons and nested popup dictionaries survive layout updates.
+`indicator.py` coalesces mode changes on a condition-driven worker started only
+after the PTY fork. A changed label triggers a bounded settings reload outside
+the input loop. No thread is started for an unmanaged layout and no idle polling
+is used. Termux shares one toolbar configuration across sessions; a label reflects
+the last session to refresh it, while the toggle always affects the active input
+session. Runtime refresh can be disabled with `TERMUX_VIET_MODE_KEY=0`.
+
 The PTY interface has no reliable surrounding-text API. Reopening a previous
 word, distinguishing arbitrary raw password forms, or detecting Vim's Insert
 mode through tmux requires deeper application integration. EN is the explicit

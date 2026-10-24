@@ -4,7 +4,7 @@ Bộ gõ tiếng Việt gọn nhẹ cho terminal Termux, dùng **lõi UniKey**.
 Gõ Telex trực tiếp vào terminal, đổi Việt/Anh ngay trên bàn phím.
 Không cần root, desktop framework hay thư viện Python ngoài.
 
-**Bản 0.1.1:** Telex. VNI và các kiểu gõ khác dành cho phiên bản sau.
+**Bản 0.2.0:** Telex. VNI và các kiểu gõ khác dành cho phiên bản sau.
 Đây là bộ chuyển phím trong terminal; không có dự đoán từ hoặc autocorrect
 như Gboard/Samsung Keyboard.
 
@@ -26,7 +26,7 @@ Cần Python 3.10+ và compiler C++17. Build diễn ra trên thiết bị nên d
 trên các kiến trúc Termux khác mà không tải binary không rõ nguồn.
 Sau khi clone, build/cài/chạy không cần mạng. Không dùng `pip install` cho bản này.
 
-Muốn tự bật khi mở Bash/Zsh, thêm nút EN/VI và chuyển từ script cũ:
+Muốn tự bật khi mở Bash/Zsh, thêm nút đổi EN/VI trước ESC và chuyển từ script cũ:
 
 ```sh
 sh install.sh --auto-start --termux-keys --migrate
@@ -38,7 +38,7 @@ Mở session mới để áp dụng shell hook. Các tùy chọn độc lập:
 | Tùy chọn | Tác dụng |
 | --- | --- |
 | `--auto-start` | Thêm hook có đánh dấu vào `.bashrc` và `.zshrc`, thêm thư mục lệnh vào PATH |
-| `--termux-keys` | Thay hàng extra keys bằng bố cục có EN/VI |
+| `--termux-keys` | Thêm một nút đổi EN/VI trước ESC, giữ phím mặc định/tùy chỉnh |
 | `--migrate` | Gỡ đúng block tự chạy `tivi` cũ đã nhận diện; giữ các script cũ |
 | `--prefix PATH` | Cài vào prefix khác, mặc định `~/.local` |
 
@@ -62,7 +62,7 @@ printf '%s\n' 'nuwar nuwax' | termux-viet convert
 | Phím | Chức năng |
 | --- | --- |
 | Ctrl+Space, Alt+Space, Alt+`\` | Đổi VI/EN |
-| Nút EN / VI | Chọn chế độ trực tiếp |
+| Nút EN / VI trước ESC | Chuyển sang chế độ được ghi trên nút |
 | `s f r x j` | Sắc, huyền, hỏi, ngã, nặng |
 | `aa ee oo`, `aw ow uw`, `dd` | â ê ô, ă ơ ư, đ |
 | `w` | Gõ nhanh ư theo UniKey |
@@ -72,6 +72,30 @@ printf '%s\n' 'nuwar nuwax' | termux-viet convert
 Gõ dấu ngay sau nguyên âm hoặc cuối từ: `nuwar`/`nuawr` → `nửa`,
 `tieengs` → `tiếng`, `dduowcj` → `được`. Không tự đổi `nửa` thành `nữa`
 và không bổ sung dấu chưa gõ. Backspace xóa ký tự hiển thị.
+
+### Nút đổi ngôn ngữ
+
+Sau khi cài với `--termux-keys`, nút đổi ngôn ngữ nằm ngay trước ESC.
+Tất cả phím mặc định, gồm ←/→, được giữ lại. Khi nâng từ bố cục cũ của
+termux-viet, vị trí EN/VI thay nhầm ←/→ được sửa lại.
+
+Nhãn là **chế độ sẽ chuyển sang**: đang VI thì nút ghi **EN**; đang EN thì nút
+ghi **VI**. Bấm nút gửi Ctrl+Space để đổi đúng chế độ của session đang nhập.
+Đổi bằng phím tắt cũng cập nhật nhãn ở nền, không chèn thông báo vào dòng gõ.
+
+Cập nhật bản đang cài và bố cục:
+
+```sh
+git pull --ff-only
+sh install.sh --auto-start --termux-keys
+termux-reload-settings
+```
+
+Mở session mới để chạy phiên bản mới. Termux dùng **một cấu hình hàng phím
+chung cho toàn ứng dụng**: nhãn phản ánh session cập nhật gần nhất, có thể cũ
+khi chuyển giữa các session có chế độ khác nhau. Bấm nút vẫn luôn đổi chế độ
+thực tế của session hiện tại. Không có polling khi chờ gõ; reload chỉ chạy
+khi nhãn thay đổi. Đặt `TERMUX_VIET_MODE_KEY=0` để tắt cập nhật nhãn tự động.
 
 Dùng layout **English** của Gboard/Samsung Keyboard khi bật VI trong termux-viet,
 tránh hai bộ gõ cùng chuyển dấu. Chuyển **EN khi gõ lệnh shell, code, URL hoặc
@@ -115,8 +139,9 @@ termux-reload-settings
 ```
 
 Lệnh gỡ bỏ chương trình/hook được quản lý, giữ backup và cấu hình riêng.
-Hàng extra keys cũ được phục hồi nếu hàng hiện tại vẫn là hàng do bộ cài tạo.
-Các chỉnh sửa khác của bạn trong `termux.properties` được giữ nguyên.
+Hàng extra keys cũ được phục hồi nếu bố cục hiện tại chưa được bạn sửa thêm.
+Nếu đã tùy chỉnh, chỉ nút của termux-viet được gỡ. Các chỉnh sửa khác của bạn
+trong `termux.properties` được giữ nguyên.
 Để quay lại cấu hình trước khi chuyển đổi, chép file tương ứng từ đường dẫn
 backup đã in về `.bashrc`, `.zshrc` hoặc `.termux/termux.properties`, rồi mở session mới.
 

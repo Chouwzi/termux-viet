@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 — 2026-10-24
+
+- Restore LEFT/RIGHT replaced by the legacy language buttons.
+- Add one Ctrl+Space language toggle before ESC while preserving default/custom keys and popups.
+- Display the target language: EN when VI is selected, VI when EN is selected.
+- Refresh the marked button asynchronously on mode changes; document Termux's global layout scope.
+- Preserve unrelated properties and custom additions during install, refresh and uninstall.
+- Add layout, indicator and real PTY regressions; isolate malformed config from engine startup.
+
 ## 0.1.1 — 2026-10-24
 
 - Fix converter option parsing on Python 3.10 and allow options between text arguments.
