@@ -4,7 +4,7 @@ Bộ gõ tiếng Việt gọn nhẹ cho terminal Termux, dùng **lõi UniKey**.
 Gõ Telex trực tiếp vào terminal, đổi Việt/Anh ngay trên bàn phím.
 Không cần root, desktop framework hay thư viện Python ngoài.
 
-**Bản 0.2.1:** Telex. VNI và các kiểu gõ khác dành cho phiên bản sau.
+**Bản 0.2.2:** Telex. VNI và các kiểu gõ khác dành cho phiên bản sau.
 Đây là bộ chuyển phím trong terminal; không có dự đoán từ hoặc autocorrect
 như Gboard/Samsung Keyboard.
 
@@ -113,9 +113,10 @@ Không in thông báo đổi chế độ giữa dòng đang nhập và không gh
 - UTF-8/escape phân mảnh được giữ nguyên; output chương trình không bị decode rồi encode lại.
 - Phím di chuyển, history, Tab và control keys kết thúc vùng ghép hiện tại.
   Sau khi quay lại một từ cũ, không tự phục dựng từ quanh con trỏ.
-- Tự tạm dừng Telex trong alternate screen và vùng nhập mật khẩu canonical không echo.
-  Vim/tmux hoặc ứng dụng toàn màn hình có thể cần chuyển EN; bộ gõ không biết
-  chế độ Insert/Normal của editor nằm bên trong một terminal khác.
+- VI hoạt động trong màn hình thường và alternate screen, gồm ô nhập của
+  Codex/OpenCode/agy, nano và Insert mode của nvim. Với nvim/Vim, chuyển EN
+  trước khi dùng lệnh Normal/`:`; PTY không nhận biết chế độ nội bộ của editor.
+- Tự tạm dừng Telex trong vùng nhập mật khẩu canonical không echo.
 - Mật khẩu dùng raw mode, ứng dụng tự vẽ form và một số TUI không thể phân biệt
   chắc chắn bằng PTY; chọn EN trước khi nhập chuỗi cần giữ nguyên.
 - Các shortcut dấu ngoặc `[`/`]` của UniKey không được bật, để giữ nguyên cú pháp shell.

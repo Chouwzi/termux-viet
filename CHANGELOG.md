@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 — 2026-10-24
+
+- Keep Telex enabled in alternate-screen TUI inputs instead of silently bypassing VI.
+- Preserve canonical password bypass and reset composition on screen changes.
+- Add raw fullscreen/mode-toggle/password regressions and optional real nvim/nano save tests.
+- Verify unsent Vietnamese input in installed Codex, OpenCode and agy TUIs on Termux.
+
 ## 0.2.1 — 2026-10-24
 
 - Show the current mode on the language button: VI for Vietnamese, EN for English.
