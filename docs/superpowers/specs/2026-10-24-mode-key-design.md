@@ -1,7 +1,8 @@
 # Mode key correction
 
 User-defined behavior: restore LEFT/RIGHT and preserve all default keys; add one
-toggle before ESC; selected VI displays target EN and selected EN displays target VI.
+toggle before ESC; selected VI displays VI and selected EN displays EN.
+The label shows the current mode; pressing it switches to the other mode.
 Keep the Telex engine and existing hotkeys unchanged.
 
 The installer preserves custom layouts/popups and tags its own button. Legacy

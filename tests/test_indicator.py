@@ -25,13 +25,13 @@ class IndicatorTests(unittest.TestCase):
                 while not completed.exists() and time.monotonic() < deadline:
                     time.sleep(.01)
                 self.assertTrue(completed.exists())
-                self.assertEqual(parse_layout(properties.read_text())[0][0]['display'], 'VI')
+                self.assertEqual(parse_layout(properties.read_text())[0][0]['display'], 'EN')
                 completed.unlink()
                 indicator.update('VI')
                 while not completed.exists() and time.monotonic() < deadline:
                     time.sleep(.01)
                 self.assertTrue(completed.exists())
-                self.assertEqual(parse_layout(properties.read_text())[0][0]['display'], 'EN')
+                self.assertEqual(parse_layout(properties.read_text())[0][0]['display'], 'VI')
             finally:
                 indicator.close()
 
