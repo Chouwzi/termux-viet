@@ -104,6 +104,7 @@ def _relay(pid, master, processor, wake_read, stopped):
     escape_since = None
     child_status = None
     drain_deadline = None
+    drain_remaining = None
     eof = False
     limit = 1024 * 1024
     while not stopped():
@@ -111,11 +112,14 @@ def _relay(pid, master, processor, wake_read, stopped):
             result, status = os.waitpid(pid, os.WNOHANG)
             if result:
                 child_status = status
-                drain_deadline = time.monotonic() + .25
+                drain_remaining = limit
                 to_child.clear()
-        if (eof and not to_screen) or (
-                drain_deadline is not None and time.monotonic() >= drain_deadline):
+        if drain_deadline is not None and time.monotonic() >= drain_deadline:
+            eof = True
+        if eof and not to_screen:
             break
+        if child_status is not None and not to_screen and drain_deadline is None:
+            drain_deadline = time.monotonic() + .25
         readers = [wake_read]
         if not eof and len(to_screen) < limit:
             readers.append(master)
@@ -153,6 +157,11 @@ def _relay(pid, master, processor, wake_read, stopped):
             if not data:
                 eof = True
             else:
+                drain_deadline = None
+                if drain_remaining is not None:
+                    drain_remaining -= len(data)
+                    if drain_remaining <= 0:
+                        eof = True
                 alternate = modes.alternate
                 generation = modes.paste_generation
                 modes.feed(data)

@@ -76,7 +76,8 @@ class Relay:
                     break
                 self.output.extend(data)
         if marker not in self.output:
-            raise AssertionError(f'Missing {marker!r} in {bytes(self.output)!r}')
+            raise AssertionError(f'Missing {marker!r}; received {len(self.output)} bytes, '
+                                 f'prefix={bytes(self.output[:200])!r}')
 
     def close(self):
         if self.process.poll() is None:
@@ -120,6 +121,17 @@ class RelayTests(unittest.TestCase):
                            "os.write(1,b'\\xbb\\x87\\xffEND')")
         relay.until(b'END')
         self.assertIn(b'\xe1\xbb\x87\xffEND', relay.output)
+        self.assertEqual(relay.process.wait(timeout=5), 0)
+
+    def test_slow_screen_keeps_all_output_after_child_exit(self):
+        relay = self.relay(
+            "import os,time; print('READY',flush=True); time.sleep(.05); "
+            "os.write(1,b'x'*100000+b'END')"
+        )
+        relay.until(b'READY')
+        time.sleep(.7)
+        relay.until(b'END')
+        self.assertEqual(relay.output.count(b'x'), 100000)
         self.assertEqual(relay.process.wait(timeout=5), 0)
 
     def test_canonical_child_receives_composed_line(self):

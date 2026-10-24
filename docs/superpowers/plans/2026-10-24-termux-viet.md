@@ -29,31 +29,31 @@ Spec: ../specs/2026-10-24-termux-viet-design.md
 
 ### 1. Engine and distribution
 
-- [ ] Write regression tests with literal expected strings for repeated marks, case, qu/gi, uo, free marks, backspace and independent instances; run RED.
-- [ ] Vendor eight dependency-free UniKey translation units and required headers with upstream commit/license metadata.
-- [ ] Implement opaque native handles and bounded UTF-8 edits; compile with hidden symbols.
-- [ ] Implement Python resource ownership, edit application, convert and traditional/modern tone options.
-- [ ] Verify engine tests and compiler warnings; commit.
+- [x] Write regression tests with literal expected strings for repeated marks, case, qu/gi, uo, free marks, backspace and independent instances; run RED.
+- [x] Vendor eight dependency-free UniKey translation units and required headers with upstream commit/license metadata.
+- [x] Implement opaque native handles and bounded UTF-8 edits; compile with hidden symbols.
+- [x] Implement Python resource ownership, edit application, convert and traditional/modern tone options.
+- [x] Verify engine tests and compiler warnings; commit.
 
 ### 2. Input and terminal
 
-- [ ] Write parser tests for controls, hotkeys, UTF-8, escape and bracketed paste with arbitrary chunking; run RED.
-- [ ] Implement bounded streaming parser, literal Unicode boundaries, session mode and output-mode observation.
-- [ ] Write real PTY tests for canonical/raw erase, password bypass, byte output, resize, child exit and signal cleanup; run RED.
-- [ ] Implement PTY relay with complete writes, terminal restoration and signal/exit propagation.
-- [ ] Run whole suite; commit.
+- [x] Write parser tests for controls, hotkeys, UTF-8, escape and bracketed paste with arbitrary chunking; run RED.
+- [x] Implement bounded streaming parser, literal Unicode boundaries, session mode and output-mode observation.
+- [x] Write real PTY tests for canonical/raw erase, password bypass, byte output, resize, child exit and signal cleanup; run RED.
+- [x] Implement PTY relay with complete writes, terminal restoration and signal/exit propagation.
+- [x] Run whole suite; commit.
 
 ### 3. CLI, installation and migration
 
-- [ ] Write subprocess tests for conversion, CLI errors and temporary-HOME install/reinstall/uninstall; run RED.
-- [ ] Implement CLI, no-dependency local installer, shell hooks, backups and explicit legacy migration.
-- [ ] Check Bash/Zsh hooks and existing EN/VI key compatibility; run suite; commit.
+- [x] Write subprocess tests for conversion, CLI errors and temporary-HOME install/reinstall/uninstall; run RED.
+- [x] Implement CLI, no-dependency local installer, shell hooks, backups and explicit legacy migration.
+- [x] Check Bash/Zsh hooks and existing EN/VI key compatibility; run suite; commit.
 
 ### 4. Release
 
-- [ ] Add Vietnamese README, architecture/research notes, contribution/GitFlow guide, changelog and CI.
-- [ ] Benchmark engine/parser and document measured scope without commercial-equivalence claims.
-- [ ] Fresh-context review, fix material issues with regressions, rerun all checks.
+- [x] Add Vietnamese README, architecture/research notes, contribution/GitFlow guide, changelog and CI.
+- [x] Benchmark engine/parser and document measured scope without commercial-equivalence claims.
+- [x] Fresh-context review, fix material issues with regressions, rerun all checks.
 - [ ] Audit tracked files and history for secrets, license and machine paths.
 - [ ] Merge feature to develop, release/0.1.0 to main, tag v0.1.0, merge back.
 - [ ] Create public GitHub repository and push reviewed refs; verify visibility, tree and remote heads.
