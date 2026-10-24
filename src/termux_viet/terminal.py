@@ -176,7 +176,7 @@ def _relay(pid, master, processor, wake_read, stopped):
             if not data:
                 break
             password, erase = child_settings(master)
-            processor.bypass = password or modes.alternate
+            processor.bypass = password
             processor.paste_markers = modes.bracketed_paste
             to_child.extend(processor.feed(data, erase=erase))
         if processor.escape_pending:

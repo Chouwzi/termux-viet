@@ -199,14 +199,34 @@ class RelayTests(unittest.TestCase):
         write_all(relay.master, b'\x1b[200~ass passwords\x1b[201~\r')
         relay.until(('RESULT=' + b'ass passwords\n'.hex()).encode())
 
-    def test_alternate_screen_bypasses_telex(self):
+    def test_alternate_screen_keeps_telex_enabled(self):
         relay = self.relay(
             "import os; print('\\x1b[?1049hREADY',flush=True); "
             "print('RESULT='+os.read(0,1024).hex(),flush=True)"
         )
         relay.until(b'READY')
-        write_all(relay.master, b'ass\r')
-        relay.until(b'RESULT=6173730a')
+        write_all(relay.master, b'tieengs Vieetj\r')
+        relay.until(('RESULT=' + 'tiếng Việt\n'.encode().hex()).encode())
+
+    def test_raw_fullscreen_receives_telex_edits_and_mode_toggles(self):
+        relay = self.relay(
+            "import os,tty\ntty.setraw(0)\nos.write(1,b'\\x1b[?1049hREADY')\ndata=b''\n"
+            "while not data.endswith(b'\\x04'):\n data+=os.read(0,1024)\n"
+            "os.write(1,b'RESULT='+data[:-1].hex().encode())"
+        )
+        relay.until(b'READY')
+        write_all(relay.master, b'as\x00as\x00as\x04')
+        relay.until(('RESULT=' + b'a\x7f\xc3\xa1asa\x7f\xc3\xa1'.hex()).encode())
+
+    def test_alternate_screen_password_still_bypasses_telex(self):
+        relay = self.relay(
+            "import os,termios; a=termios.tcgetattr(0); a[3]&=~termios.ECHO; "
+            "termios.tcsetattr(0,termios.TCSANOW,a); print('\\x1b[?1049hREADY',flush=True); "
+            "print('RESULT='+os.read(0,1024).hex(),flush=True)"
+        )
+        relay.until(b'READY')
+        write_all(relay.master, b'passwords\r')
+        relay.until(b'RESULT=70617373776f7264730a')
 
     def test_sigterm_restores_terminal(self):
         relay = self.relay("import time; print('READY',flush=True); time.sleep(60)")
