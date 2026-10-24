@@ -11,13 +11,12 @@ import tempfile
 import time
 from pathlib import Path
 
+from .extra_keys import definition, install_keys, uninstall_keys
+
 BEGIN = '# >>> termux-viet >>>'
 END = '# <<< termux-viet <<<'
 HOOK = re.compile(r'(?m)^# >>> termux-viet >>>\n.*?^# <<< termux-viet <<<\n?', re.S)
 LEGACY = re.compile(r'(?m)^if \[ -z "\$TIVI" \].*?^fi\n?', re.S)
-KEYS = ("extra-keys = [['ESC','/','-','HOME','UP','END','PGUP'],"
-        "['TAB','CTRL','ALT',{macro: 'ALT [ 1 ; 5 E', display: 'EN'},'DOWN',"
-        "{macro: 'ALT [ 1 ; 5 V', display: 'VI'},'PGDN']]\n")
 
 
 def _prefix(prefix=None):
@@ -86,30 +85,6 @@ def _hook(prefix):
     )
 
 
-def _keys(text):
-    lines = text.splitlines(keepends=True)
-    output = []
-    replaced = False
-    index = 0
-    while index < len(lines):
-        line = lines[index]
-        if re.match(r'^\s*extra-keys\s*=', line):
-            while line.rstrip().endswith('\\') and index + 1 < len(lines):
-                index += 1
-                line = lines[index]
-            if not replaced:
-                output.append(KEYS)
-                replaced = True
-        else:
-            output.append(line)
-        index += 1
-    if not replaced:
-        if output and not output[-1].endswith('\n'):
-            output.append('\n')
-        output.append(KEYS)
-    return ''.join(output)
-
-
 def install(root, *, prefix=None, auto_start=False, migrate=False, termux_keys=False):
     prefix = _prefix(prefix)
     source = Path(root) / 'src/termux_viet'
@@ -171,13 +146,13 @@ def install(root, *, prefix=None, auto_start=False, migrate=False, termux_keys=F
         properties = Path.home() / '.termux/termux.properties'
         manifest = base / 'install.json'
         metadata = json.loads(manifest.read_text()) if manifest.exists() else {}
+        original = properties.read_text() if properties.exists() else ''
+        installed = install_keys(original)
         if 'extra_keys_before' not in metadata:
-            original = properties.read_text() if properties.exists() else ''
-            match = re.search(r'(?m)^[ \t]*extra-keys[ \t]*=(?:[^\n]*\\\n)*[^\n]*(?:\n|$)',
-                              original)
-            metadata['extra_keys_before'] = match.group() if match else ''
-            _atomic_write(manifest, json.dumps(metadata))
-        _edit_config(properties, _keys, backup)
+            metadata['extra_keys_before'] = definition(original)
+        metadata['extra_keys_installed'] = definition(installed)
+        _atomic_write(manifest, json.dumps(metadata))
+        _edit_config(properties, lambda _: installed, backup)
     print(f'Installed: {launcher}')
     if backup.exists():
         print(f'Config backup: {backup}')
@@ -199,8 +174,8 @@ def uninstall(prefix=None):
         metadata = json.loads(manifest.read_text())
         properties = Path.home() / '.termux/termux.properties'
         if 'extra_keys_before' in metadata and properties.exists():
-            _edit_config(properties, lambda text: text.replace(
-                KEYS, metadata['extra_keys_before'], 1), backup)
+            _edit_config(properties, lambda text: uninstall_keys(
+                text, metadata['extra_keys_before'], metadata.get('extra_keys_installed')), backup)
     if base.is_dir():
         shutil.rmtree(base)
     print('Removed termux-viet and its shell hooks. Config backups are preserved.')

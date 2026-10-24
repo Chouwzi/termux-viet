@@ -5,6 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from termux_viet.extra_keys import parse_layout
+
 ROOT = Path(__file__).resolve().parents[1]
 LEGACY = '''# old keyboard
 if [ -z "$TIVI" ] && [ -t 0 ] && [ -x "$HOME/.local/bin/tivi" ] \\
@@ -74,7 +76,9 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('bell-character=ignore', content)
         self.assertIn('terminal-margin-horizontal=4', content)
         self.assertEqual(content.count('extra-keys ='), 1)
-        self.assertIn("display: 'VI'", content)
+        button = parse_layout(content)[0][0]
+        self.assertEqual(button['display'], 'EN')
+        self.assertEqual(button['macro'], 'CTRL SPACE')
         properties.write_text(content + 'new-setting=keep\n')
         result = subprocess.run([str(self.launcher), 'uninstall'], capture_output=True,
                                 text=True, env=self.environment)

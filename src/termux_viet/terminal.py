@@ -12,6 +12,7 @@ import time
 import tty
 from pathlib import Path
 
+from .indicator import ModeKeyIndicator
 from .input import InputProcessor, TerminalModes
 
 IUTF8 = getattr(termios, 'IUTF8', 0x4000)
@@ -198,6 +199,7 @@ def run(command, *, vi=True, modern=False, spell_check=True):
         raise ValueError('Interactive mode requires a terminal; use convert for piped text')
     old = termios.tcgetattr(0)
     mode_file = _mode_file()
+    indicator = ModeKeyIndicator(enabled=os.environ.get('TERMUX_VIET_MODE_KEY') != '0')
 
     def update_mode(mode):
         try:
@@ -206,6 +208,7 @@ def run(command, *, vi=True, modern=False, spell_check=True):
             mode_file.chmod(0o600)
         except OSError:
             pass
+        indicator.update(mode)
 
     with InputProcessor(vi=vi, modern=modern, spell_check=spell_check,
                         on_mode=update_mode) as processor:
@@ -247,6 +250,7 @@ def run(command, *, vi=True, modern=False, spell_check=True):
             update_mode('VI' if vi else 'EN')
             child_status = _relay(pid, master, processor, wake_read, lambda: stopped)
         finally:
+            indicator.close()
             try:
                 termios.tcsetattr(0, termios.TCSANOW, old)
                 os.write(1, b'\x1b[?2004l')

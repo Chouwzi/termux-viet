@@ -1,6 +1,6 @@
 [project]
 name = "termux-viet"
-version = "0.1.1"
+version = "0.2.0"
 description = "Lightweight Vietnamese Telex input for Termux terminals"
 requires-python = ">=3.10"
 license = "GPL-2.0-or-later"
