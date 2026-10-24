@@ -1,0 +1,60 @@
+# termux-viet implementation plan
+
+> Execution: inline with superpowers:executing-plans. User approved implementation and publication on 2026-10-24.
+
+Goal: a lightweight Vietnamese terminal input method for Termux with UniKey Telex and a portable installer.
+
+Architecture: a small C ABI exposes per-instance UniKey edits to Python ctypes. A streaming byte parser applies edits to a child PTY. Installation uses only the Python standard library and a C++ compiler.
+
+Spec: ../specs/2026-10-24-termux-viet-design.md
+
+## Global constraints
+
+- Name: termux-viet; Python package: termux_viet. Telex first; VNI deferred.
+- No runtime pip dependencies, network access or typed-text logging.
+- Vendor pinned source with original notices and complete corresponding licenses.
+- Public repository must exclude personal config, history, credentials and build artifacts.
+- Main/develop/feature/release GitFlow; separate conventional commits.
+- Isolated new repository; no modification of original engine files.
+
+## Review focus
+
+- Split UTF-8/CSI/paste markers at every boundary must preserve behavior.
+- Password input and alternate screens must bypass conversion.
+- Canonical erase must remove UTF-8 characters correctly; raw readline must receive DEL.
+- Signals, child exit and startup errors must restore terminal settings.
+- Reinstall/uninstall must preserve user config, maintain backups and avoid duplicate hooks.
+
+## Tasks
+
+### 1. Engine and distribution
+
+- [ ] Write regression tests with literal expected strings for repeated marks, case, qu/gi, uo, free marks, backspace and independent instances; run RED.
+- [ ] Vendor eight dependency-free UniKey translation units and required headers with upstream commit/license metadata.
+- [ ] Implement opaque native handles and bounded UTF-8 edits; compile with hidden symbols.
+- [ ] Implement Python resource ownership, edit application, convert and traditional/modern tone options.
+- [ ] Verify engine tests and compiler warnings; commit.
+
+### 2. Input and terminal
+
+- [ ] Write parser tests for controls, hotkeys, UTF-8, escape and bracketed paste with arbitrary chunking; run RED.
+- [ ] Implement bounded streaming parser, literal Unicode boundaries, session mode and output-mode observation.
+- [ ] Write real PTY tests for canonical/raw erase, password bypass, byte output, resize, child exit and signal cleanup; run RED.
+- [ ] Implement PTY relay with complete writes, terminal restoration and signal/exit propagation.
+- [ ] Run whole suite; commit.
+
+### 3. CLI, installation and migration
+
+- [ ] Write subprocess tests for conversion, CLI errors and temporary-HOME install/reinstall/uninstall; run RED.
+- [ ] Implement CLI, no-dependency local installer, shell hooks, backups and explicit legacy migration.
+- [ ] Check Bash/Zsh hooks and existing EN/VI key compatibility; run suite; commit.
+
+### 4. Release
+
+- [ ] Add Vietnamese README, architecture/research notes, contribution/GitFlow guide, changelog and CI.
+- [ ] Benchmark engine/parser and document measured scope without commercial-equivalence claims.
+- [ ] Fresh-context review, fix material issues with regressions, rerun all checks.
+- [ ] Audit tracked files and history for secrets, license and machine paths.
+- [ ] Merge feature to develop, release/0.1.0 to main, tag v0.1.0, merge back.
+- [ ] Create public GitHub repository and push reviewed refs; verify visibility, tree and remote heads.
+- [ ] Install on current Termux with backed-up legacy hooks and verify local executable.
