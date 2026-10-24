@@ -3,6 +3,7 @@ import fcntl
 import os
 import pty
 import select
+import shutil
 import signal
 import struct
 import subprocess
@@ -97,6 +98,23 @@ class RelayTests(unittest.TestCase):
         self.assertEqual(relay.process.wait(timeout=5), 7)
         self.assertEqual(termios.tcgetattr(relay.slave), relay.before)
 
+    def test_bash_and_zsh_receive_live_telex(self):
+        for shell, flags in [('bash', ['--noprofile', '--norc', '-i']), ('zsh', ['-f', '-i'])]:
+            executable = shutil.which(shell)
+            if not executable:
+                continue
+            with self.subTest(shell=shell):
+                relay = Relay([executable, *flags])
+                try:
+                    write_all(relay.master, b"printf '<READY>\\n'\r")
+                    relay.until(b'<READY>\r\n')
+                    write_all(relay.master, b"printf '<OK>%s</OK>\\n' 'tieengs Vieetj'\r")
+                    relay.until('<OK>tiếng Việt</OK>\r\n'.encode())
+                    write_all(relay.master, b'\x00exit 7\r')
+                    self.assertEqual(relay.process.wait(timeout=5), 7)
+                finally:
+                    relay.close()
+
     def test_output_is_byte_exact(self):
         relay = self.relay("import os,time; os.write(1,b'\\xe1'); time.sleep(.05); "
                            "os.write(1,b'\\xbb\\x87\\xffEND')")
@@ -161,3 +179,49 @@ class RelayTests(unittest.TestCase):
         relay = Relay(['termux-viet-command-does-not-exist'])
         self.addCleanup(relay.close)
         self.assertEqual(relay.process.wait(timeout=5), 127)
+
+    def test_child_exit_does_not_wait_for_nohup_descendant(self):
+        relay = self.relay(
+            "import subprocess,signal; subprocess.Popen(['sleep','3'], "
+            "preexec_fn=lambda:signal.signal(signal.SIGHUP,signal.SIG_IGN)); "
+            "print('READY',flush=True); raise SystemExit(7)"
+        )
+        relay.until(b'READY')
+        self.assertEqual(relay.process.wait(timeout=1.5), 7)
+
+    def test_sigterm_works_with_child_input_backpressure(self):
+        relay = self.relay(
+            "import tty,time; tty.setraw(0); print('READY',flush=True); time.sleep(30)"
+        )
+        relay.until(b'READY')
+        os.set_blocking(relay.master, False)
+        deadline = time.monotonic() + .5
+        while time.monotonic() < deadline:
+            try:
+                os.write(relay.master, b'x' * 4096)
+            except BlockingIOError:
+                time.sleep(.005)
+        relay.process.terminate()
+        try:
+            self.assertEqual(relay.process.wait(timeout=2), 143)
+            self.assertEqual(termios.tcgetattr(relay.slave), relay.before)
+        finally:
+            if relay.process.poll() is None:
+                relay.process.kill()
+                relay.process.wait()
+
+    def test_sigterm_works_with_screen_output_backpressure(self):
+        relay = self.relay(
+            "import os,time; print('READY',flush=True); "
+            "os.write(1,b'x'*2000000); time.sleep(30)"
+        )
+        relay.until(b'READY')
+        time.sleep(.1)
+        relay.process.terminate()
+        try:
+            self.assertEqual(relay.process.wait(timeout=2), 143)
+            self.assertEqual(termios.tcgetattr(relay.slave), relay.before)
+        finally:
+            if relay.process.poll() is None:
+                relay.process.kill()
+                relay.process.wait()

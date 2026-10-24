@@ -100,6 +100,12 @@ class InputTests(unittest.TestCase):
         output, _ = self.process([b'\x1b\x1b[Aas'])
         self.assertEqual(output, b'\x1b\x1b[Aa\x7f\xc3\xa1')
 
+    def test_overlong_csi_retains_its_final_byte_across_chunks(self):
+        prefix = b'\x1b[' + b';' * 5000
+        for chunks in [[prefix + b'ass'], [prefix, b'ass']]:
+            output, _ = self.process(chunks)
+            self.assertEqual(output, prefix + b'ass')
+
     def test_incomplete_utf8_then_ascii_does_not_swallow_ascii(self):
         output, _ = self.process([b'\xe1', b'ass'])
         self.assertEqual(output, b'\xe1a\x7f\xc3\xa1\x7fas')

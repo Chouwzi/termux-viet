@@ -66,7 +66,7 @@ class InstallerTests(unittest.TestCase):
         directory = self.home / '.termux'
         directory.mkdir()
         properties = directory / 'termux.properties'
-        original = "bell-character=ignore\nextra-keys = [['ESC'], \\\n+ ['LEFT']]\nterminal-margin-horizontal=4\n"
+        original = "bell-character=ignore\nextra-keys = [['ESC'], \\\n ['LEFT']]\nterminal-margin-horizontal=4\n"
         properties.write_text(original)
         result = self.install('--termux-keys')
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -75,6 +75,22 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('terminal-margin-horizontal=4', content)
         self.assertEqual(content.count('extra-keys ='), 1)
         self.assertIn("display: 'VI'", content)
+        properties.write_text(content + 'new-setting=keep\n')
+        result = subprocess.run([str(self.launcher), 'uninstall'], capture_output=True,
+                                text=True, env=self.environment)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(properties.read_text(), original + 'new-setting=keep\n')
+
+    def test_custom_prefix_uninstall_finds_own_installation(self):
+        prefix = self.home / 'custom prefix'
+        result = self.install('--prefix', str(prefix))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        launcher = prefix / 'bin/termux-viet'
+        result = subprocess.run([str(launcher), 'uninstall'], capture_output=True,
+                                text=True, env=self.environment)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(launcher.exists())
+        self.assertFalse((prefix / 'share/termux-viet').exists())
 
     def test_unrelated_legacy_reference_is_not_removed(self):
         original = 'alias old_keyboard="tivi"\nif true; then\n  echo tivi\nfi\n'

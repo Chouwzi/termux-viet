@@ -1,6 +1,7 @@
 """User-local installation, backed-up config edits and managed shell hooks."""
 
 import hashlib
+import json
 import os
 import re
 import shlex
@@ -20,7 +21,12 @@ KEYS = ("extra-keys = [['ESC','/','-','HOME','UP','END','PGUP'],"
 
 
 def _prefix(prefix=None):
-    return Path(prefix).expanduser().resolve() if prefix else Path.home() / '.local'
+    if prefix:
+        return Path(prefix).expanduser().resolve()
+    executable = Path(sys.argv[0]).resolve()
+    if executable.name == 'termux-viet' and executable.parent.name == 'bin':
+        return executable.parents[1]
+    return Path.home() / '.local'
 
 
 def _state():
@@ -64,8 +70,10 @@ def _remove_legacy(text):
 
 def _hook(prefix):
     executable = shlex.quote(str(prefix / 'bin/termux-viet'))
+    bindir = shlex.quote(str(prefix / 'bin'))
     return (
         f'{BEGIN}\n'
+        f'case ":$PATH:" in *:{bindir}:*) ;; *) export PATH={bindir}:"$PATH" ;; esac\n'
         'case $- in\n'
         '  *i*)\n'
         '    if [ -t 0 ] && [ -z "${TERMUX_VIET:-}${TIVI:-}" ] &&\n'
@@ -160,7 +168,16 @@ def install(root, *, prefix=None, auto_start=False, migrate=False, termux_keys=F
             if path.exists() or auto_start:
                 _edit_config(path, transform, backup)
     if termux_keys:
-        _edit_config(Path.home() / '.termux/termux.properties', _keys, backup)
+        properties = Path.home() / '.termux/termux.properties'
+        manifest = base / 'install.json'
+        metadata = json.loads(manifest.read_text()) if manifest.exists() else {}
+        if 'extra_keys_before' not in metadata:
+            original = properties.read_text() if properties.exists() else ''
+            match = re.search(r'(?m)^[ \t]*extra-keys[ \t]*=(?:[^\n]*\\\n)*[^\n]*(?:\n|$)',
+                              original)
+            metadata['extra_keys_before'] = match.group() if match else ''
+            _atomic_write(manifest, json.dumps(metadata))
+        _edit_config(properties, _keys, backup)
     print(f'Installed: {launcher}')
     if backup.exists():
         print(f'Config backup: {backup}')
@@ -177,6 +194,13 @@ def uninstall(prefix=None):
             _edit_config(path, lambda text: HOOK.sub('', text), backup)
     (prefix / 'bin/termux-viet').unlink(missing_ok=True)
     base = prefix / 'share/termux-viet'
+    manifest = base / 'install.json'
+    if manifest.exists():
+        metadata = json.loads(manifest.read_text())
+        properties = Path.home() / '.termux/termux.properties'
+        if 'extra_keys_before' in metadata and properties.exists():
+            _edit_config(properties, lambda text: text.replace(
+                KEYS, metadata['extra_keys_before'], 1), backup)
     if base.is_dir():
         shutil.rmtree(base)
     print('Removed termux-viet and its shell hooks. Config backups are preserved.')

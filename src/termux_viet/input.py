@@ -67,6 +67,7 @@ class InputProcessor:
         self._current_paste_markers = True
         self._opaque = False
         self._opaque_bel = False
+        self._opaque_csi = False
         self._literal_word = False
         self._composing = False
 
@@ -143,6 +144,18 @@ class InputProcessor:
                 del self.pending[:count]
                 break
 
+            if self._opaque_csi:
+                end = next((i + 1 for i, byte in enumerate(self.pending)
+                            if 0x40 <= byte <= 0x7e), None)
+                if end is None:
+                    output.extend(self.pending)
+                    self.pending.clear()
+                    break
+                output.extend(self.pending[:end])
+                del self.pending[:end]
+                self._opaque_csi = False
+                continue
+
             first = self.pending[0]
             if first == ESC:
                 if len(self.pending) >= 2 and self.pending[1] == ESC:
@@ -155,6 +168,7 @@ class InputProcessor:
                     if len(self.pending) > MAX_SEQUENCE:
                         self._opaque = len(self.pending) > 1 and self.pending[1] in b']PX^_'
                         self._opaque_bel = self.pending[1] == ord(']')
+                        self._opaque_csi = self.pending[1] in b'[O'
                         keep = self._opaque and self.pending[-1] == ESC
                         count = len(self.pending) - keep
                         output.extend(self.pending[:count])

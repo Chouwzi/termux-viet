@@ -87,6 +87,101 @@ def _mode_file():
     return state / 'termux-viet' / f'{os.getpid()}.mode'
 
 
+def _write_pending(fd, queue):
+    try:
+        count = os.write(fd, queue)
+    except (BlockingIOError, InterruptedError):
+        return
+    if count == 0:
+        raise OSError(errno.EIO, 'Terminal write returned zero')
+    del queue[:count]
+
+
+def _relay(pid, master, processor, wake_read, stopped):
+    modes = TerminalModes()
+    to_child = bytearray()
+    to_screen = bytearray(b'\x1b[?2004h')
+    escape_since = None
+    child_status = None
+    drain_deadline = None
+    eof = False
+    limit = 1024 * 1024
+    while not stopped():
+        if child_status is None:
+            result, status = os.waitpid(pid, os.WNOHANG)
+            if result:
+                child_status = status
+                drain_deadline = time.monotonic() + .25
+                to_child.clear()
+        if (eof and not to_screen) or (
+                drain_deadline is not None and time.monotonic() >= drain_deadline):
+            break
+        readers = [wake_read]
+        if not eof and len(to_screen) < limit:
+            readers.append(master)
+        if child_status is None and not eof and len(to_child) < limit:
+            readers.append(0)
+        writers = ([master] if to_child and not eof else []) + ([1] if to_screen else [])
+        timeout = None
+        if escape_since is not None:
+            delay = .035 if len(processor.pending) == 1 else .25
+            timeout = max(0, escape_since + delay - time.monotonic())
+        if drain_deadline is not None:
+            remaining = max(0, drain_deadline - time.monotonic())
+            timeout = remaining if timeout is None else min(timeout, remaining)
+        readable, writable, _ = select.select(readers, writers, [], timeout)
+        if wake_read in readable:
+            os.read(wake_read, 65536)
+        if stopped():
+            break
+        if 1 in writable:
+            _write_pending(1, to_screen)
+        if master in writable:
+            try:
+                _write_pending(master, to_child)
+            except OSError as error:
+                if error.errno != errno.EIO:
+                    raise
+                to_child.clear()
+        if master in readable:
+            try:
+                data = os.read(master, 65536)
+            except OSError as error:
+                if error.errno != errno.EIO:
+                    raise
+                data = b''
+            if not data:
+                eof = True
+            else:
+                alternate = modes.alternate
+                generation = modes.paste_generation
+                modes.feed(data)
+                if alternate != modes.alternate:
+                    processor.reset()
+                to_screen.extend(data)
+                if modes.paste_generation != generation and not modes.bracketed_paste:
+                    to_screen.extend(b'\x1b[?2004h')
+        if 0 in readable:
+            data = os.read(0, 4096)
+            if not data:
+                break
+            password, erase = child_settings(master)
+            processor.bypass = password or modes.alternate
+            processor.paste_markers = modes.bracketed_paste
+            to_child.extend(processor.feed(data, erase=erase))
+        if processor.escape_pending:
+            now = time.monotonic()
+            if 0 in readable or escape_since is None:
+                escape_since = now
+            delay = .035 if len(processor.pending) == 1 else .25
+            if now - escape_since >= delay:
+                to_child.extend(processor.flush_pending())
+                escape_since = None
+        else:
+            escape_since = None
+    return child_status
+
+
 def run(command, *, vi=True, modern=False, spell_check=True):
     if not command:
         raise ValueError('A child command is required')
@@ -121,8 +216,8 @@ def run(command, *, vi=True, modern=False, spell_check=True):
 
         stopped = 0
         previous_handlers = {}
-        modes = TerminalModes()
-        escape_since = None
+        child_status = None
+        screen_flags = fcntl.fcntl(1, fcntl.F_GETFL)
         wake_read, wake_write = os.pipe2(os.O_NONBLOCK | os.O_CLOEXEC)
         previous_wakeup = signal.set_wakeup_fd(wake_write)
 
@@ -138,62 +233,24 @@ def run(command, *, vi=True, modern=False, spell_check=True):
                 signal.signal(signum, (lambda *_: None) if signum == signal.SIGCHLD else handler)
             _resize(master)
             tty.setraw(0, termios.TCSANOW)
-            write_all(1, b'\x1b[?2004h')
+            os.set_blocking(master, False)
+            os.set_blocking(1, False)
             update_mode('VI' if vi else 'EN')
-            while not stopped:
-                timeout = None
-                if escape_since is not None:
-                    delay = 0.035 if len(processor.pending) == 1 else 0.25
-                    timeout = max(0, escape_since + delay - time.monotonic())
-                readable, _, _ = select.select([master, 0, wake_read], [], [], timeout)
-                if wake_read in readable:
-                    os.read(wake_read, 65536)
-                if stopped:
-                    break
-                if master in readable:
-                    try:
-                        data = os.read(master, 65536)
-                    except OSError as error:
-                        if error.errno == errno.EIO:
-                            break
-                        raise
-                    if not data:
-                        break
-                    alternate = modes.alternate
-                    paste_generation = modes.paste_generation
-                    modes.feed(data)
-                    if alternate != modes.alternate:
-                        processor.reset()
-                    write_all(1, data)
-                    if modes.paste_generation != paste_generation and not modes.bracketed_paste:
-                        write_all(1, b'\x1b[?2004h')
-                if 0 in readable:
-                    data = os.read(0, 4096)
-                    if not data:
-                        break
-                    password, erase = child_settings(master)
-                    processor.bypass = password or modes.alternate
-                    processor.paste_markers = modes.bracketed_paste
-                    write_all(master, processor.feed(data, erase=erase))
-                if processor.escape_pending:
-                    now = time.monotonic()
-                    if 0 in readable or escape_since is None:
-                        escape_since = now
-                    timeout = 0.035 if len(processor.pending) == 1 else 0.25
-                    if now - escape_since >= timeout:
-                        write_all(master, processor.flush_pending())
-                        escape_since = None
-                else:
-                    escape_since = None
+            child_status = _relay(pid, master, processor, wake_read, lambda: stopped)
         finally:
             try:
                 termios.tcsetattr(0, termios.TCSANOW, old)
-                write_all(1, b'\x1b[?2004l')
+                os.write(1, b'\x1b[?2004l')
             except OSError:
                 pass
+            fcntl.fcntl(1, fcntl.F_SETFL, screen_flags)
             if stopped:
                 _signal_child(pid, master, stopped)
-            status = _reap(pid, master)
+            if child_status is None:
+                status = _reap(pid, master)
+            else:
+                status = os.waitstatus_to_exitcode(child_status)
+                status = status if status >= 0 else 128 - status
             os.close(master)
             mode_file.unlink(missing_ok=True)
             for signum, handler in previous_handlers.items():
