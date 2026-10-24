@@ -27,7 +27,14 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result.stdout, 'tiếng Việt\nas')
 
     def test_modern_style(self):
-        self.assertEqual(cli('convert', '--modern', 'hoaf').stdout, 'hoà\n')
+        result = cli('convert', '--modern', 'hoaf')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, 'hoà\n')
+
+    def test_converter_options_can_be_between_text_arguments(self):
+        result = cli('convert', 'hoaf', '--modern', 'thuyr')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, 'hoà thuỷ\n')
 
     def test_interactive_without_tty_reports_actionable_error(self):
         result = cli()
@@ -36,7 +43,7 @@ class CliTests(unittest.TestCase):
         self.assertNotIn('Traceback', result.stderr)
 
     def test_version_and_doctor(self):
-        self.assertEqual(cli('--version').stdout, 'termux-viet 0.1.0\n')
+        self.assertEqual(cli('--version').stdout, 'termux-viet 0.1.1\n')
         result = cli('doctor')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('UniKey: OK', result.stdout)
