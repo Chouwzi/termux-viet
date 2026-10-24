@@ -20,7 +20,7 @@ def _load_library():
     if not path.is_file():
         raise RuntimeError('Native engine missing. Run: python scripts/build.py')
     lib = ctypes.CDLL(str(path))
-    lib.tv_create.argtypes = [ctypes.c_int]
+    lib.tv_create.argtypes = [ctypes.c_int, ctypes.c_int]
     lib.tv_create.restype = ctypes.c_void_p
     lib.tv_destroy.argtypes = [ctypes.c_void_p]
     lib.tv_destroy.restype = None
@@ -33,9 +33,9 @@ def _load_library():
 
 
 class Engine:
-    def __init__(self, *, modern=False):
+    def __init__(self, *, modern=False, spell_check=True):
         self._lib = _load_library()
-        self._handle = self._lib.tv_create(modern)
+        self._handle = self._lib.tv_create(modern, spell_check)
         if not self._handle:
             raise MemoryError('Unable to initialize UniKey')
         self._output = ctypes.create_string_buffer(1024)
@@ -78,8 +78,8 @@ class Engine:
         return self._edit(-1)
 
 
-def convert(text, *, modern=False):
-    with Engine(modern=modern) as engine:
+def convert(text, *, modern=False, spell_check=True):
+    with Engine(modern=modern, spell_check=spell_check) as engine:
         def word(match):
             raw = match.group()
             if not raw.isascii():

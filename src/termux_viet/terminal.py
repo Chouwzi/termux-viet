@@ -87,7 +87,7 @@ def _mode_file():
     return state / 'termux-viet' / f'{os.getpid()}.mode'
 
 
-def run(command, *, vi=True, modern=False):
+def run(command, *, vi=True, modern=False, spell_check=True):
     if not command:
         raise ValueError('A child command is required')
     if not os.isatty(0):
@@ -103,7 +103,8 @@ def run(command, *, vi=True, modern=False):
         except OSError:
             pass
 
-    with InputProcessor(vi=vi, modern=modern, on_mode=update_mode) as processor:
+    with InputProcessor(vi=vi, modern=modern, spell_check=spell_check,
+                        on_mode=update_mode) as processor:
         pid, master = pty.fork()
         if pid == 0:
             try:
@@ -137,6 +138,7 @@ def run(command, *, vi=True, modern=False):
                 signal.signal(signum, (lambda *_: None) if signum == signal.SIGCHLD else handler)
             _resize(master)
             tty.setraw(0, termios.TCSANOW)
+            write_all(1, b'\x1b[?2004h')
             update_mode('VI' if vi else 'EN')
             while not stopped:
                 timeout = None
@@ -158,18 +160,22 @@ def run(command, *, vi=True, modern=False):
                     if not data:
                         break
                     alternate = modes.alternate
+                    paste_generation = modes.paste_generation
                     modes.feed(data)
                     if alternate != modes.alternate:
                         processor.reset()
                     write_all(1, data)
+                    if modes.paste_generation != paste_generation and not modes.bracketed_paste:
+                        write_all(1, b'\x1b[?2004h')
                 if 0 in readable:
                     data = os.read(0, 4096)
                     if not data:
                         break
                     password, erase = child_settings(master)
                     processor.bypass = password or modes.alternate
+                    processor.paste_markers = modes.bracketed_paste
                     write_all(master, processor.feed(data, erase=erase))
-                if processor.pending and processor.pending[0] == 27 and not processor.paste:
+                if processor.escape_pending:
                     now = time.monotonic()
                     if 0 in readable or escape_since is None:
                         escape_since = now
@@ -180,7 +186,11 @@ def run(command, *, vi=True, modern=False):
                 else:
                     escape_since = None
         finally:
-            termios.tcsetattr(0, termios.TCSANOW, old)
+            try:
+                termios.tcsetattr(0, termios.TCSANOW, old)
+                write_all(1, b'\x1b[?2004l')
+            except OSError:
+                pass
             if stopped:
                 _signal_child(pid, master, stopped)
             status = _reap(pid, master)

@@ -122,6 +122,14 @@ class RelayTests(unittest.TestCase):
         write_all(relay.master, b'passwords\r')
         relay.until(b'RESULT=70617373776f7264730a')
 
+    def test_paste_to_unaware_child_has_literal_payload_without_markers(self):
+        relay = self.relay("import os; print('READY',flush=True); "
+                           "print('RESULT='+os.read(0,1024).hex(),flush=True)")
+        relay.until(b'READY')
+        self.assertIn(b'\x1b[?2004h', relay.output)
+        write_all(relay.master, b'\x1b[200~ass passwords\x1b[201~\r')
+        relay.until(('RESULT=' + b'ass passwords\n'.hex()).encode())
+
     def test_alternate_screen_bypasses_telex(self):
         relay = self.relay(
             "import os; print('\\x1b[?1049hREADY',flush=True); "

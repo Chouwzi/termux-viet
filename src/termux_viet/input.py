@@ -1,12 +1,20 @@
 """Streaming terminal input; paste and opaque control strings stay literal."""
 
-import re
-
 from .engine import Engine
 
 ESC = 27
 PASTE_END = b'\x1b[201~'
 MAX_SEQUENCE = 4096
+
+
+def _string_end(data, *, bell=False, start=0):
+    end = data.find(b'\x1b\\', start)
+    candidates = [end + 2] if end >= 0 else []
+    if bell:
+        end = data.find(b'\x07', start)
+        if end >= 0:
+            candidates.append(end + 1)
+    return min(candidates) if candidates else None
 
 
 def _escape_end(data):
@@ -24,10 +32,7 @@ def _escape_end(data):
                 return end
         return None
     if second in b']PX^_':
-        for index in range(2, len(data)):
-            if data[index] == 7 or data[index - 1:index + 1] == b'\x1b\\':
-                return index + 1
-        return None
+        return _string_end(data, bell=second == ord(']'), start=2)
     if 0x20 <= second <= 0x2f:
         for index in range(2, len(data)):
             if 0x30 <= data[index] <= 0x7e:
@@ -50,14 +55,18 @@ def _utf8_width(first):
 
 
 class InputProcessor:
-    def __init__(self, *, vi=True, modern=False, bypass=False, on_mode=None):
-        self.engine = Engine(modern=modern)
+    def __init__(self, *, vi=True, modern=False, spell_check=True, bypass=False,
+                 on_mode=None, paste_markers=True):
+        self.engine = Engine(modern=modern, spell_check=spell_check)
         self.vi = vi
         self._bypass = bypass
         self.on_mode = on_mode
         self.pending = bytearray()
         self.paste = False
+        self.paste_markers = paste_markers
+        self._current_paste_markers = True
         self._opaque = False
+        self._opaque_bel = False
         self._literal_word = False
         self._composing = False
 
@@ -95,6 +104,11 @@ class InputProcessor:
         self.reset()
         return output
 
+    @property
+    def escape_pending(self):
+        return bool(self.pending and self.pending[0] == ESC and not self.paste
+                    and not self._opaque)
+
     def feed(self, data, *, erase=b'\x7f'):
         self.pending.extend(data)
         output = bytearray()
@@ -102,9 +116,10 @@ class InputProcessor:
             if self.paste:
                 end = self.pending.find(PASTE_END)
                 if end >= 0:
-                    end += len(PASTE_END)
                     output.extend(self.pending[:end])
-                    del self.pending[:end]
+                    if self._current_paste_markers:
+                        output.extend(PASTE_END)
+                    del self.pending[:end + len(PASTE_END)]
                     self.paste = False
                     self.reset()
                     continue
@@ -117,10 +132,10 @@ class InputProcessor:
                 del self.pending[:count]
                 break
             if self._opaque:
-                end = re.search(b'\x07|\x1b\\\\', self.pending)
-                if end:
-                    output.extend(self.pending[:end.end()])
-                    del self.pending[:end.end()]
+                end = _string_end(self.pending, bell=self._opaque_bel)
+                if end is not None:
+                    output.extend(self.pending[:end])
+                    del self.pending[:end]
                     self._opaque = False
                     continue
                 count = len(self.pending) - (self.pending[-1] == ESC)
@@ -130,18 +145,30 @@ class InputProcessor:
 
             first = self.pending[0]
             if first == ESC:
+                if len(self.pending) >= 2 and self.pending[1] == ESC:
+                    output.append(ESC)
+                    del self.pending[0]
+                    self.reset()
+                    continue
                 end = _escape_end(self.pending)
                 if end is None:
                     if len(self.pending) > MAX_SEQUENCE:
                         self._opaque = len(self.pending) > 1 and self.pending[1] in b']PX^_'
-                        output.extend(self.flush_pending())
+                        self._opaque_bel = self.pending[1] == ord(']')
+                        keep = self._opaque and self.pending[-1] == ESC
+                        count = len(self.pending) - keep
+                        output.extend(self.pending[:count])
+                        del self.pending[:count]
+                        self.reset()
                     break
                 sequence = bytes(self.pending[:end])
                 del self.pending[:end]
                 self.reset()
                 if sequence == b'\x1b[200~':
                     self.paste = True
-                    output.extend(sequence)
+                    self._current_paste_markers = self.paste_markers
+                    if self._current_paste_markers:
+                        output.extend(sequence)
                 elif sequence == b'\x1b[1;5E':
                     self.set_mode(False)
                 elif sequence == b'\x1b[1;5V':
@@ -196,14 +223,16 @@ class TerminalModes:
     def __init__(self):
         self.alternate = False
         self.bracketed_paste = False
+        self.paste_generation = 0
         self._state = 'text'
         self._csi = bytearray()
         self._string_esc = False
+        self._string_bel = False
 
     def feed(self, data):
         for byte in data:
             if self._state == 'string':
-                if byte == 7 or (self._string_esc and byte == ord('\\')):
+                if (self._string_bel and byte == 7) or (self._string_esc and byte == ord('\\')):
                     self._state = 'text'
                 self._string_esc = byte == ESC
             elif self._state == 'csi':
@@ -222,6 +251,7 @@ class TerminalModes:
                 elif byte in b']PX^_':
                     self._state = 'string'
                     self._string_esc = False
+                    self._string_bel = byte == ord(']')
                 else:
                     self._state = 'esc' if byte == ESC else 'text'
             elif byte == ESC:
@@ -236,3 +266,4 @@ class TerminalModes:
                 self.alternate = enabled
             elif code == b'2004':
                 self.bracketed_paste = enabled
+                self.paste_generation += 1

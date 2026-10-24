@@ -11,7 +11,7 @@ struct Context {
     UkEngine engine;
     bool shift = false;
 
-    explicit Context(bool modern) {
+    Context(bool modern, bool spell_check) {
         static std::once_flag initialized;
         std::call_once(initialized, SetupUnikeyEngine);
         shared.input.init();
@@ -21,7 +21,7 @@ struct Context {
         shared.charsetId = CONV_CHARSET_XUTF8;
         shared.options.freeMarking = 1;
         shared.options.modernStyle = modern;
-        shared.options.spellCheckEnabled = 1;
+        shared.options.spellCheckEnabled = spell_check;
         engine.setCtrlInfo(&shared);
         engine.setCheckKbCaseFunc([this](int *pressed, int *caps) {
             *pressed = shift;
@@ -31,8 +31,8 @@ struct Context {
 };
 }
 
-TV_API void *tv_create(int modern) noexcept {
-    try { return new Context(modern != 0); }
+TV_API void *tv_create(int modern, int spell_check) noexcept {
+    try { return new Context(modern != 0, spell_check != 0); }
     catch (...) { return nullptr; }
 }
 

@@ -1,9 +1,22 @@
+import json
 import unittest
+from pathlib import Path
 
 from termux_viet.engine import Engine, convert
 
 
 class EngineTests(unittest.TestCase):
+    def test_upstream_telex_reference(self):
+        cases = json.loads((Path(__file__).parent / 'fixtures/unikey-telex.json').read_text())
+        with Engine(spell_check=False) as engine:
+            for raw, expected in cases:
+                engine.reset()
+                text = ''
+                for char in raw:
+                    text = engine.key(char).apply(text)
+                with self.subTest(raw=raw):
+                    self.assertEqual(text, expected)
+
     def test_telex_regressions(self):
         cases = {
             'nuwar': 'nửa', 'nuawr': 'nửa', 'nuwax': 'nữa',

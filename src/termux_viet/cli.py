@@ -20,11 +20,13 @@ def main(argv=None):
     if args and args[0] == 'convert':
         parser.add_argument('action')
         parser.add_argument('--modern', action='store_true', help='use hoà/thuỷ style')
+        parser.add_argument('--no-spell-check', action='store_true')
         parser.add_argument('text', nargs='*')
         options = parser.parse_args(args)
         text = ' '.join(options.text) if options.text else sys.stdin.read()
         try:
-            sys.stdout.write(convert(text, modern=options.modern))
+            sys.stdout.write(convert(text, modern=options.modern,
+                                     spell_check=not options.no_spell_check))
             if options.text:
                 sys.stdout.write('\n')
             return 0
@@ -56,6 +58,7 @@ def main(argv=None):
     mode.add_argument('--en', action='store_true', help='start in English mode')
     mode.add_argument('--vi', action='store_true', help='start in Vietnamese mode (default)')
     parser.add_argument('--modern', action='store_true', help='use hoà/thuỷ tone placement')
+    parser.add_argument('--no-spell-check', action='store_true', help='allow nonstandard syllables')
     parser.add_argument('-c', metavar='COMMAND', help='run a shell command')
     parser.add_argument('command', nargs=argparse.REMAINDER, help='child program and arguments')
     options = parser.parse_args(args)
@@ -71,6 +74,7 @@ def main(argv=None):
         command = [shell]
     try:
         from .terminal import run
-        return run(command, vi=not options.en, modern=options.modern)
+        return run(command, vi=not options.en, modern=options.modern,
+                   spell_check=not options.no_spell_check)
     except (ValueError, RuntimeError, OSError) as error:
         parser.exit(2, f'termux-viet: {error}\n')

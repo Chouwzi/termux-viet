@@ -35,6 +35,13 @@ class InputTests(unittest.TestCase):
                 self.assertEqual(output, raw)
                 self.assertTrue(vi)
 
+    def test_paste_markers_can_be_removed_for_unaware_child(self):
+        raw = b'\x1b[200~ass\x00\x1b[201~'
+        for point in range(len(raw) + 1):
+            output, vi = self.process([raw[:point], raw[point:]], paste_markers=False)
+            self.assertEqual(output, b'ass\x00')
+            self.assertTrue(vi)
+
     def test_escape_sequences_preserved_at_every_split(self):
         for raw in [b'\x1b[A', b'\x1b[1;5D', b'\x1bOP', b'\x1b]x\x07',
                     b'\x1bPtest\x1b\\', b'\x1bA', b'\x1b(B', b'\x1b[Mabc']:
@@ -78,6 +85,20 @@ class InputTests(unittest.TestCase):
         raw = b'\x1b]' + b'a' * 50000 + b'\x07'
         output, _ = self.process([raw])
         self.assertEqual(output, raw)
+
+    def test_long_control_string_with_split_terminator_resumes_telex(self):
+        raw = b'\x1b]' + b'a' * 5000 + b'\x1b'
+        output, _ = self.process([raw, b'\\ass'])
+        self.assertEqual(output, raw + b'\\a\x7f\xc3\xa1\x7fas')
+
+    def test_bell_inside_dcs_is_literal(self):
+        raw = b'\x1bPpayload\x07ass\x1b\\'
+        output, _ = self.process([raw])
+        self.assertEqual(output, raw)
+
+    def test_double_escape_does_not_turn_arrow_suffix_into_text(self):
+        output, _ = self.process([b'\x1b\x1b[Aas'])
+        self.assertEqual(output, b'\x1b\x1b[Aa\x7f\xc3\xa1')
 
     def test_incomplete_utf8_then_ascii_does_not_swallow_ascii(self):
         output, _ = self.process([b'\xe1', b'ass'])
