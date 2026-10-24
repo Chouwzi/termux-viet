@@ -4,7 +4,7 @@ Bộ gõ tiếng Việt gọn nhẹ cho terminal Termux, dùng **lõi UniKey**.
 Gõ Telex trực tiếp vào terminal, đổi Việt/Anh ngay trên bàn phím.
 Không cần root, desktop framework hay thư viện Python ngoài.
 
-**Bản 0.1.0:** Telex. VNI và các kiểu gõ khác dành cho phiên bản sau.
+**Bản 0.1.1:** Telex. VNI và các kiểu gõ khác dành cho phiên bản sau.
 Đây là bộ chuyển phím trong terminal; không có dự đoán từ hoặc autocorrect
 như Gboard/Samsung Keyboard.
 

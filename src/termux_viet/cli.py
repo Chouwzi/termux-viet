@@ -22,7 +22,7 @@ def main(argv=None):
         parser.add_argument('--modern', action='store_true', help='use hoà/thuỷ style')
         parser.add_argument('--no-spell-check', action='store_true')
         parser.add_argument('text', nargs='*')
-        options = parser.parse_args(args)
+        options = parser.parse_intermixed_args(args)
         text = ' '.join(options.text) if options.text else sys.stdin.read()
         try:
             sys.stdout.write(convert(text, modern=options.modern,
