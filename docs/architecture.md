@@ -25,7 +25,9 @@ control strings and CSI sequences stream through with bounded retained state.
 canonical erase configuration; raw readline receives DEL for edit operations.
 Output remains bytes. DEC alternate-screen and paste modes are observed without
 interpreting text inside OSC/DCS. Bracketed paste is enabled on the outer terminal
-and markers are adapted to the child. Canonical no-echo input bypasses conversion.
+and markers are adapted to the child. Alternate-screen changes reset composition
+without disabling VI: raw TUI inputs and editors receive the same UTF-8 edits.
+Canonical no-echo input bypasses conversion, including on the alternate screen.
 
 Both PTY and display writes are nonblocking and use queues. Each read source is
 paused at 1 MiB queued; a single read may temporarily exceed that threshold.

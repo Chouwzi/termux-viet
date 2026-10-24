@@ -43,7 +43,7 @@ class CliTests(unittest.TestCase):
         self.assertNotIn('Traceback', result.stderr)
 
     def test_version_and_doctor(self):
-        self.assertEqual(cli('--version').stdout, 'termux-viet 0.2.1\n')
+        self.assertEqual(cli('--version').stdout, 'termux-viet 0.2.2\n')
         result = cli('doctor')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('UniKey: OK', result.stdout)
