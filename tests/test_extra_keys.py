@@ -18,7 +18,7 @@ class ExtraKeyTests(unittest.TestCase):
         installed = parse_layout(install_keys(DEFAULT))
         button = installed[0].pop(0)
         self.assertEqual(button['macro'], 'CTRL SPACE')
-        self.assertEqual(button['display'], 'EN')
+        self.assertEqual(button['display'], 'VI')
         self.assertEqual(installed, original)
 
     def test_legacy_arrow_replacements_are_repaired(self):
@@ -61,10 +61,10 @@ class ExtraKeyTests(unittest.TestCase):
             path.write_text('bell-character=ignore\n' + install_keys(DEFAULT))
             self.assertTrue(apply_mode(path, 'EN'))
             layout = parse_layout(path.read_text())
-            self.assertEqual(layout[0][0]['display'], 'VI')
+            self.assertEqual(layout[0][0]['display'], 'EN')
             self.assertFalse(apply_mode(path, 'EN'))
             self.assertTrue(apply_mode(path, 'VI'))
-            self.assertEqual(parse_layout(path.read_text())[0][0]['display'], 'EN')
+            self.assertEqual(parse_layout(path.read_text())[0][0]['display'], 'VI')
             self.assertIn('bell-character=ignore\n', path.read_text())
             path.write_text(DEFAULT)
             self.assertFalse(apply_mode(path, 'EN'))
@@ -73,7 +73,7 @@ class ExtraKeyTests(unittest.TestCase):
     def test_uninstall_restores_previous_keys_after_dynamic_label_update(self):
         installed = install_keys(DEFAULT)
         changed = json.loads(json.dumps(parse_layout(installed)))
-        changed[0][0]['display'] = 'VI'
+        changed[0][0]['display'] = 'EN'
         text = 'extra-keys=' + json.dumps(changed) + '\nnew-setting=keep\n'
         self.assertEqual(uninstall_keys(text, DEFAULT, installed), DEFAULT + 'new-setting=keep\n')
 

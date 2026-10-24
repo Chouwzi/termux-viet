@@ -77,7 +77,7 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('terminal-margin-horizontal=4', content)
         self.assertEqual(content.count('extra-keys ='), 1)
         button = parse_layout(content)[0][0]
-        self.assertEqual(button['display'], 'EN')
+        self.assertEqual(button['display'], 'VI')
         self.assertEqual(button['macro'], 'CTRL SPACE')
         properties.write_text(content + 'new-setting=keep\n')
         result = subprocess.run([str(self.launcher), 'uninstall'], capture_output=True,

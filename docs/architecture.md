@@ -44,7 +44,7 @@ Only marked hooks and recognized legacy blocks are changed. Backups stay local;
 they can contain personal shell settings and must never be committed.
 
 `extra_keys.py` safely decodes literal Termux layouts without evaluating code.
-The marked Ctrl+Space toggle precedes ESC; legacy arrow replacements are repaired.
+The marked Ctrl+Space toggle displays the current mode and precedes ESC; legacy arrow replacements are repaired.
 Unrelated buttons and nested popup dictionaries survive layout updates.
 `indicator.py` coalesces mode changes on a condition-driven worker started only
 after the PTY fork. A changed label triggers a bounded settings reload outside

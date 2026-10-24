@@ -116,10 +116,10 @@ class RelayTests(unittest.TestCase):
                 relay.until(b'RESULT=6173730a')
                 deadline = time.monotonic() + 3
                 while time.monotonic() < deadline:
-                    if parse_layout(properties.read_text())[0][0]['display'] == 'VI':
+                    if parse_layout(properties.read_text())[0][0]['display'] == 'EN':
                         break
                     time.sleep(.01)
-                self.assertEqual(parse_layout(properties.read_text())[0][0]['display'], 'VI')
+                self.assertEqual(parse_layout(properties.read_text())[0][0]['display'], 'EN')
                 self.assertEqual(parse_layout(properties.read_text())[1][3:6],
                                  ['LEFT', 'DOWN', 'RIGHT'])
                 write_all(relay.master, b'\r')
